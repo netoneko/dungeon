@@ -4,7 +4,8 @@ FIXME: description
 
 ## Installation
 
-`brew install clojure`
+`brew install clojure leiningen`
+
 `lein run`
 
 ## Usage
