@@ -4,7 +4,8 @@ FIXME: description
 
 ## Installation
 
-Download from http://example.com/FIXME.
+`brew install clojure`
+`lein run`
 
 ## Usage
 
