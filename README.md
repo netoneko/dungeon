@@ -6,13 +6,13 @@ FIXME: description
 
 `brew install clojure leiningen`
 
-`lein run`
+`git clone git@github.com:netoneko/dungeon.git`
 
 ## Usage
 
-FIXME: explanation
+Inside of the project folder run
 
-    $ java -jar dungeon-0.1.0-standalone.jar [args]
+`lein run`
 
 ## Options
 
