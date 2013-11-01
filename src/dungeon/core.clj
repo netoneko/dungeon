@@ -12,12 +12,14 @@
 (def screen (TerminalFacade/createScreen terminal))
 
 (def shift-coords
-  (fn [x y direction]
-    (case direction
-      :down (list x (+ y 1))
-      :up (list x (- y 1))
-      :left (list (- x 1) y)
-      :right (list (+ x 1) y))))
+  (fn [coords direction]
+    (let [x (first coords)
+          y (last coords)]
+      (case direction
+        :down (list x (+ y 1))
+        :up (list x (- y 1))
+        :left (list (- x 1) y)
+        :right (list (+ x 1) y)))))
 
 (def flip-direction
   (fn [direction]
@@ -32,14 +34,14 @@
     (.putString screen (first coords) (last coords) " " Terminal$Color/BLACK Terminal$Color/BLACK #{})))
 
 (def draw-char
-  (fn [x y direction]
-    (clear-region (shift-coords x y (flip-direction direction)))
-    (.putString screen x y "@" Terminal$Color/GREEN Terminal$Color/BLACK #{ScreenCharacterStyle/Bold
+  (fn [coords direction]
+    (clear-region (shift-coords coords (flip-direction direction)))
+    (.putString screen (first coords) (last coords) "@" Terminal$Color/GREEN Terminal$Color/BLACK #{ScreenCharacterStyle/Bold
                                                                             ScreenCharacterStyle/Blinking})))
 
 (def draw-fireball
-  (fn [x y direction]
-    (let [coords (shift-coords x y direction)]
+  (fn [coords direction]
+    (let [coords (shift-coords coords direction)]
       (.putString screen (first coords) (last coords) "*" Terminal$Color/RED Terminal$Color/BLACK #{ScreenCharacterStyle/Bold}))
     (.refresh screen)))
 
@@ -50,8 +52,8 @@
       (if (nil? key) (recur) key))))
 
 (def walk
-  (fn [x y direction]
-    (draw-char x y direction)
+  (fn [coords direction]
+    (draw-char coords direction)
     (.refresh screen)
 
     (let [key (read-input-loop)
@@ -59,18 +61,18 @@
           value (str (.getCharacter key))]
 
       (case kind
-        "ArrowDown" (recur x (+ y 1) :down)
-        "ArrowUp" (recur x (- y 1) :up)
-        "ArrowLeft" (recur (- x 1) y :left)
-        "ArrowRight" (recur(+ x 1) y :right)
+        "ArrowDown" (recur (shift-coords coords :down) :down)
+        "ArrowUp" (recur (shift-coords coords :up) :up)
+        "ArrowLeft" (recur (shift-coords coords :left) :left)
+        "ArrowRight" (recur (shift-coords coords :right) :right)
         "NormalKey" (do
                       (case value
-                        "f" (draw-fireball x y direction)
+                        "f" (draw-fireball coords direction)
                         (println "I don't know about this hotkey"))
-                        (recur x y direction))
+                        (recur coords direction))
         (do
           (println "Unrecognizable input")
-          (recur x y direction))))))
+          (recur coords direction))))))
 
 (def notice
   (fn [text]
@@ -84,4 +86,4 @@
 
   (.startScreen screen)
   (notice "You are in the dungeon. Move with arrows, throw fireballs with 'f'.")
-  (walk 10 15 :right))
+  (walk (list 10 15) :right))
