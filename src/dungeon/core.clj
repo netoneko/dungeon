@@ -18,6 +18,7 @@
 
 (def read-input-loop
   (fn []
+    (Thread/sleep 20)
     (let [key (.readInput terminal)]
       (if (nil? key) (recur) key))))
 
