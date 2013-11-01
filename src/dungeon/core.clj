@@ -72,6 +72,10 @@
           (println "Unrecognizable input")
           (recur x y direction))))))
 
+(def notice
+  (fn [text]
+    (.putString screen 1 0 text Terminal$Color/RED Terminal$Color/BLACK #{ScreenCharacterStyle/Bold})))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
@@ -79,4 +83,5 @@
   (alter-var-root #'*read-eval* (constantly false))
 
   (.startScreen screen)
+  (notice "You are in the dungeon. Move with arrows, throw fireballs with 'f'.")
   (walk 10 15 :right))
