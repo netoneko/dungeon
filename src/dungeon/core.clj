@@ -11,10 +11,37 @@
 
 (def screen (TerminalFacade/createScreen terminal))
 
+(def shift-coords
+  (fn [x y direction]
+    (case direction
+      :down (list x (+ y 1))
+      :up (list x (- y 1))
+      :left (list (- x 1) y)
+      :right (list (+ x 1) y))))
+
+(def flip-direction
+  (fn [direction]
+    (case direction
+      :down :up
+      :up :down
+      :left :right
+      :right :left)))
+
+(def clear-region
+  (fn [coords]
+    (.putString screen (first coords) (last coords) " " Terminal$Color/BLACK Terminal$Color/BLACK #{})))
+
 (def draw-char
-  (fn [x y]
+  (fn [x y direction]
+    (clear-region (shift-coords x y (flip-direction direction)))
     (.putString screen x y "@" Terminal$Color/GREEN Terminal$Color/BLACK #{ScreenCharacterStyle/Bold
                                                                             ScreenCharacterStyle/Blinking})))
+
+(def draw-fireball
+  (fn [x y direction]
+    (let [coords (shift-coords x y direction)]
+      (.putString screen (first coords) (last coords) "*" Terminal$Color/RED Terminal$Color/BLACK #{ScreenCharacterStyle/Bold}))
+    (.refresh screen)))
 
 (def read-input-loop
   (fn []
@@ -23,22 +50,27 @@
       (if (nil? key) (recur) key))))
 
 (def walk
-  (fn [x y]
-    (.clear screen)
-    (draw-char x y)
+  (fn [x y direction]
+    (draw-char x y direction)
     (.refresh screen)
 
     (let [key (read-input-loop)
-          kind (str (.getKind key))]
+          kind (str (.getKind key))
+          value (str (.getCharacter key))]
 
       (case kind
-        "ArrowDown" (recur x (+ y 1))
-        "ArrowUp" (recur x (- y 1))
-        "ArrowLeft" (recur (- x 1) y)
-        "ArrowRight" (recur(+ x 1) y)
+        "ArrowDown" (recur x (+ y 1) :down)
+        "ArrowUp" (recur x (- y 1) :up)
+        "ArrowLeft" (recur (- x 1) y :left)
+        "ArrowRight" (recur(+ x 1) y :right)
+        "NormalKey" (do
+                      (case value
+                        "f" (draw-fireball x y direction)
+                        (println "I don't know about this hotkey"))
+                        (recur x y direction))
         (do
           (println "Unrecognizable input")
-          (recur x y))))))
+          (recur x y direction))))))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -47,4 +79,4 @@
   (alter-var-root #'*read-eval* (constantly false))
 
   (.startScreen screen)
-  (walk 10 15))
+  (walk 10 15 :right))
