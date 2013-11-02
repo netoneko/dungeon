@@ -66,6 +66,7 @@
 
 (def human-turn
   (fn [world hero]
+    (println "HUMAN TURN!!!")
     (let [coords (hero :coords )
           direction (hero :direction )
           key (read-input-loop)
@@ -93,6 +94,18 @@
       (+ (Math/pow (- x1 x2) 2)
         (Math/pow (- y1 y2) 2)))))
 
+(def abs
+  (fn [x]
+    (if (neg? x) (- x) x)))
+
+(def direction-to-target
+  (fn [[x1 y1] [x2 y2]]
+    (let [horizontal (- x1 x2)
+          vertical (- y1 y2)]
+      ((if (> (abs horizontal) (abs vertical)) first second)
+        (list (if (> horizontal 0) :right :left )
+          (if (> vertical 0) :down :up))))))
+
 (def hero-icon
   (fn [hero]
     (hero :icon )))
@@ -100,17 +113,19 @@
 (def observe
   (fn [world hero]
     (let [coords (hero :coords )
-          enemies (remove hero (world :heroes ))]
-      (println (str (hero-icon hero) " observes " (count (world :heroes )) " heroes"))
-      (println (str "His enemies are " (clojure.string/join " and " (map hero-icon (world :heroes )))))
-      (sort #(print-return (distance (%1 :coords ) (%2 :coords ))) enemies))))
+          enemies (remove #(= hero %1) (world :heroes ))]
+      (println (str "His enemies are " (clojure.string/join " and " (map hero-icon enemies))))
+      (last (first (sort #(- (first (print-return %1)) (first %2))
+                     (map #(list (distance (%1 :coords ) coords) %1) enemies)))))))
 
 (def ai-turn
   (fn [world hero]
-    (let [direction (rand-nth (list :up :down :left :right ))
+    (print (str "===== " (hero-icon hero) " turn! "))
+    (let [target (observe world hero)
+          direction (direction-to-target (target :coords ) (hero :coords ))
           new-hero (merge-hero hero
                      (list (shift-coords (hero :coords ) direction) direction))]
-      (println (str (new-hero :icon ) "'s target is " ((first (observe world hero)) :icon )))
+      (println (str (new-hero :icon ) "'s target is " (target :icon )))
       (list (merge-world world (hero :coords ) new-hero) new-hero))))
 
 (def turn
@@ -130,7 +145,7 @@
 
 (def game-loop
   (fn [world]
-    (if (> (count (world :heroes)) 1)
+    (if (> (count (world :heroes )) 1)
       (recur (reduce turn world (world :heroes )))
       (println world))))
 
