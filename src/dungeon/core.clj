@@ -11,6 +11,11 @@
 
 (def screen (TerminalFacade/createScreen terminal))
 
+(def print-return
+  (fn [x]
+    (println x)
+    x))
+
 (def shift-coords
   (fn [coords direction]
     (let [x (first coords)
@@ -55,8 +60,8 @@
 
 (def merge-world
   (fn [world old-coords hero]
-    (let [world-map (dissoc (world :map ) old-coords)]
-      (merge world {:map (assoc world-map (hero :coords ) hero)
+    (let [world-map (assoc (dissoc (world :map ) old-coords) (hero :coords ) hero)]
+      (merge world {:map world-map
                     :heroes (vals world-map)}))))
 
 (def human-turn
@@ -88,11 +93,17 @@
       (+ (Math/pow (- x1 x2) 2)
         (Math/pow (- y1 y2) 2)))))
 
+(def hero-icon
+  (fn [hero]
+    (hero :icon )))
+
 (def observe
   (fn [world hero]
     (let [coords (hero :coords )
-          enemies (dissoc (world :heroes ))]
-      (sort #(distance (%1 :coords ) (%2 :coords )) enemies))))
+          enemies (remove hero (world :heroes ))]
+      (println (str (hero-icon hero) " observes " (count (world :heroes )) " heroes"))
+      (println (str "His enemies are " (clojure.string/join " and " (map hero-icon (world :heroes )))))
+      (sort #(print-return (distance (%1 :coords ) (%2 :coords ))) enemies))))
 
 (def ai-turn
   (fn [world hero]
@@ -119,7 +130,9 @@
 
 (def game-loop
   (fn [world]
-    (recur (reduce turn world (world :heroes )))))
+    (if (> (count (world :heroes)) 1)
+      (recur (reduce turn world (world :heroes )))
+      (println world))))
 
 (defn -main
   "I don't do a whole lot ... yet."
