@@ -61,7 +61,8 @@
 (def merge-world
   (fn [world enemies old-coords hero]
     (let [world-map (assoc (dissoc (world :map ) old-coords) (hero :coords ) hero)
-          heroes (vec (flatten [hero enemies]))]
+          filtered-enemies (print-return (filter #(> (.indexOf (vec (vals world-map)) %1) -1) enemies))
+          heroes (vec (flatten [hero filtered-enemies]))]
       (merge world {:map world-map
                     :heroes heroes}))))
 
