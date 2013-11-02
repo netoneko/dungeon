@@ -59,13 +59,14 @@
     (merge hero {:coords (first args) :direction (second args)})))
 
 (def merge-world
-  (fn [world old-coords hero]
-    (let [world-map (assoc (dissoc (world :map ) old-coords) (hero :coords ) hero)]
+  (fn [world enemies old-coords hero]
+    (let [world-map (assoc (dissoc (world :map ) old-coords) (hero :coords ) hero)
+          heroes (vec (flatten [hero enemies]))]
       (merge world {:map world-map
-                    :heroes (vals world-map)}))))
+                    :heroes heroes}))))
 
 (def human-turn
-  (fn [world hero]
+  (fn [world hero enemies]
     (println "HUMAN TURN!!!")
     (let [coords (hero :coords )
           direction (hero :direction )
@@ -85,7 +86,7 @@
                                       (do
                                         (println "Unrecognizable input")
                                         (list coords direction))))]
-      (list (merge-world world (hero :coords ) new-hero) new-hero))))
+      (list (merge-world world enemies (hero :coords ) new-hero) new-hero))))
 
 (def distance
   "Euclidean distance between 2 points"
@@ -104,35 +105,35 @@
           vertical (- y1 y2)]
       ((if (> (abs horizontal) (abs vertical)) first second)
         (list (if (> horizontal 0) :right :left )
-          (if (> vertical 0) :down :up))))))
+          (if (> vertical 0) :down :up ))))))
 
 (def hero-icon
   (fn [hero]
     (hero :icon )))
 
 (def observe
-  (fn [world hero]
-    (let [coords (hero :coords )
-          enemies (remove #(= hero %1) (world :heroes ))]
-      (println (str "His enemies are " (clojure.string/join " and " (map hero-icon enemies))))
-      (last (first (sort #(- (first (print-return %1)) (first %2))
-                     (map #(list (distance (%1 :coords ) coords) %1) enemies)))))))
+  (fn [world hero enemies]
+    (println (str "His enemies are " (clojure.string/join " and " (map hero-icon enemies))))
+    (last (first (sort #(- (first %1) (first %2))
+                   (map #(list (distance (%1 :coords ) (hero :coords )) %1) enemies))))))
 
 (def ai-turn
-  (fn [world hero]
+  (fn [world hero enemies]
     (print (str "===== " (hero-icon hero) " turn! "))
-    (let [target (observe world hero)
+    (let [target (observe world hero enemies)
           direction (direction-to-target (target :coords ) (hero :coords ))
           new-hero (merge-hero hero
                      (list (shift-coords (hero :coords ) direction) direction))]
       (println (str (new-hero :icon ) "'s target is " (target :icon )))
-      (list (merge-world world (hero :coords ) new-hero) new-hero))))
+      (list (merge-world world enemies (hero :coords ) new-hero) new-hero))))
 
 (def turn
-  (fn [world hero]
-    (let [results (if (= (hero :status ) :human )
-                    (human-turn world hero)
-                    (ai-turn world hero))
+  (fn [world]
+    (let [hero (peek (world :heroes ))
+          enemies (pop (world :heroes ))
+          results (if (= (hero :status ) :human )
+                    (human-turn world hero enemies)
+                    (ai-turn world hero enemies))
           world (first results)
           hero (second results)]
       (draw-hero hero)
@@ -146,7 +147,7 @@
 (def game-loop
   (fn [world]
     (if (> (count (world :heroes )) 1)
-      (recur (reduce turn world (world :heroes )))
+      (recur (turn world))
       (println world))))
 
 (defn -main
@@ -169,7 +170,7 @@
               :color Terminal$Color/GREEN, :background-color Terminal$Color/BLACK
               :screen-settings #{ScreenCharacterStyle/Bold}})
 
-  (def heroes (list hero orc troll))
+  (def heroes [hero orc troll])
 
   (def world {:heroes heroes :map (reduce #(assoc %1 (%2 :coords ) %2) {} heroes)})
 
